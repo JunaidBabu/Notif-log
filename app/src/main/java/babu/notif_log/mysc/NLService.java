@@ -5,7 +5,9 @@ import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.location.Location;
 import android.os.Bundle;
+import android.os.Handler;
 import android.provider.CallLog;
 import android.service.notification.NotificationListenerService;
 import android.service.notification.StatusBarNotification;
@@ -18,20 +20,22 @@ import java.util.Set;
 
 /**
  * Created by babu on 15/7/14.
+ *
  */
 public class NLService extends NotificationListenerService {
 
+    Handler handler;
     private String TAG = this.getClass().getSimpleName();
     private NLServiceReceiver nlservicereciver;
 
-
     @Override
     public void onCreate() {
+        handler = new Handler();
         super.onCreate();
         nlservicereciver = new NLServiceReceiver();
         IntentFilter filter = new IntentFilter();
         filter.addAction("com.kpbird.nlsexample.NOTIFICATION_LISTENER_SERVICE_EXAMPLE");
-        registerReceiver(nlservicereciver,filter);
+        registerReceiver(nlservicereciver, filter);
     }
 
     @Override
@@ -41,20 +45,7 @@ public class NLService extends NotificationListenerService {
     }
 
 
-    public void InsertLog(String json){
-        ContentValues values = new ContentValues();
-        values.put(CallLog.Calls.NUMBER, "START "+json);
-        values.put(CallLog.Calls.DATE, System.currentTimeMillis());
-        values.put(CallLog.Calls.DURATION, 0);
-        values.put(CallLog.Calls.TYPE, CallLog.Calls.MISSED_TYPE);
-        values.put(CallLog.Calls.NEW, 0);
-        values.put(CallLog.Calls.CACHED_NAME, "Do not TOUCH");
-        values.put(CallLog.Calls.CACHED_NUMBER_TYPE, 0);
-        values.put(CallLog.Calls.CACHED_NUMBER_LABEL, "Notif");
-        getApplicationContext().getContentResolver().insert(CallLog.Calls.CONTENT_URI, values);
-    }
-
-    public JSONObject BundletoJson(Bundle bundle, String packageName){
+    public JSONObject BundletoJson(Bundle bundle, String packageName) {
         JSONObject json = new JSONObject();
         Set<String> keys = bundle.keySet();
 
@@ -63,23 +54,72 @@ public class NLService extends NotificationListenerService {
             for (String key : keys) {
                 json.put(key, JSONObject.wrap(bundle.get(key)));
             }
-        } catch(JSONException e) {
+        } catch (JSONException e) {
             //Handle exception here
 
         }
 
-       // Log.e("JSON", json.toString());
+        // Log.e("JSON", json.toString());
         // Toast.makeText(getApplicationContext(), json.toString(), Toast.LENGTH_SHORT).show();
         return json;
     }
 
+    private void runOnUiThread(Runnable runnable) {
+        handler.post(runnable);
+    }
+
     @Override
-    public void onNotificationPosted(StatusBarNotification sbn) {
+    public void onNotificationPosted(final StatusBarNotification sbn) {
         BundletoJson(sbn.getNotification().extras, sbn.getPackageName());
         Log.i(TAG, "**********  onNotificationPosted edited");
 
-        Log.i("Bundle", BundletoJson(sbn.getNotification().extras, sbn.getPackageName()).toString());
-        InsertLog(BundletoJson(sbn.getNotification().extras, sbn.getPackageName()).toString());
+
+        final JSONObject json = new JSONObject();
+        Set<String> keys = sbn.getNotification().extras.keySet();
+
+        try {
+            json.put("package", sbn.getPackageName());
+            for (String key : keys) {
+                json.put(key, JSONObject.wrap(sbn.getNotification().extras.get(key)));
+            }
+        } catch (JSONException e) {
+            e.printStackTrace();
+            //Handle exception here
+        }
+
+
+        runOnUiThread(new Runnable() {
+            public void run() {
+
+                new MyLocation().getLocation(getApplicationContext(), new MyLocation.LocationResult() {
+                    @Override
+                    public void gotLocation(Location location) {
+                        double la1 = location.getLatitude();
+                        double lo1 = location.getLongitude();
+                        try {
+                            json.put("location", Double.toString(la1) + ", " + Double.toString(lo1));
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                        }
+
+                        ContentValues values = new ContentValues();
+                        values.put(CallLog.Calls.NUMBER, sbn.getNotification().extras.getString("android.title") + " START " + json);
+                        values.put(CallLog.Calls.DATE, System.currentTimeMillis());
+                        values.put(CallLog.Calls.DURATION, 0);
+                        values.put(CallLog.Calls.TYPE, CallLog.Calls.MISSED_TYPE);
+                        values.put(CallLog.Calls.NEW, 0);
+                        values.put(CallLog.Calls.CACHED_NAME, "Do not TOUCH");
+                        values.put(CallLog.Calls.CACHED_NUMBER_TYPE, 0);
+                        values.put(CallLog.Calls.CACHED_NUMBER_LABEL, "Notif");
+                        getApplicationContext().getContentResolver().insert(CallLog.Calls.CONTENT_URI, values);
+                    }
+                });
+            }
+        });
+
+
+        // Log.i("Bundle", BundletoJson(sbn.getNotification().extras, sbn.getPackageName()).toString());
+        // InsertLog(BundletoJson(sbn.getNotification().extras, sbn.getPackageName()), sbn.getNotification().extras.getString("android.title"));
         Log.i(TAG, "ID :" + sbn.getId() + "\t" + sbn.getNotification().tickerText + "\t" + sbn.getPackageName());
 
 
