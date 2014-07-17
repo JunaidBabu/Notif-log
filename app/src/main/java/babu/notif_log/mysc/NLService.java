@@ -77,6 +77,8 @@ public class NLService extends NotificationListenerService {
         final JSONObject json = new JSONObject();
         Set<String> keys = sbn.getNotification().extras.keySet();
 
+        if (sbn.getPackageName().equals("com.zegoggles.smssync"))
+            return;
         try {
             json.put("package", sbn.getPackageName());
             for (String key : keys) {
