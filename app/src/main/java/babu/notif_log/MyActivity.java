@@ -21,30 +21,16 @@ import java.util.Date;
 public class MyActivity extends Activity {
 
     Context context;
+    TextView t1;
     private TextView txtView;
     private NotificationReceiver nReceiver;
 
-    TextView t1;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_my);
         t1 = (TextView) findViewById(R.id.text);
         context = this;
-
-//        ContentValues values = new ContentValues();
-//        values.put(CallLog.Calls.NUMBER, "START how about a number like this this is just to make sure that I can save a lot more data even longer than this, so if this works well, then this is the best app ever hahhha");
-//        values.put(CallLog.Calls.DATE, System.currentTimeMillis());
-//        values.put(CallLog.Calls.DURATION, 0);
-//        values.put(CallLog.Calls.TYPE, CallLog.Calls.MISSED_TYPE);
-//        values.put(CallLog.Calls.NEW, 1);
-//        values.put(CallLog.Calls.CACHED_NAME, "fake name");
-//        values.put(CallLog.Calls.CACHED_NUMBER_TYPE, 0);
-//        values.put(CallLog.Calls.CACHED_NUMBER_LABEL, "numlabel");
-//        context.getContentResolver().insert(CallLog.Calls.CONTENT_URI, values);
-
-       // t1.setText(getCallDetails());
-
 
 
         txtView = (TextView) findViewById(R.id.textView);
